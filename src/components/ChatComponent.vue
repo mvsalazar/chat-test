@@ -44,7 +44,7 @@ import axios from 'axios';
 const questionType = {
   NAME: 'name',
   EMAIL: 'email',
-  SUBJECT: 'subkect'
+  SUBJECT: 'subject'
 };
 
 const status = {
