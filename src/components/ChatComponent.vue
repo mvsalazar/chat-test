@@ -1,18 +1,14 @@
 <template>
   <div class="chat-container">
     <div class="chat_container_header">
-      <p>Chat with Support</p>
+      <p>LinkedIn Support</p>
     </div>
     <div class="conversation_wrapper">
       <ul id="example-1">
         <li v-for="message in messages" v-bind:key="message.id">
           <div class="message__container">
-            <div class="message_author" v-if="message.type === 'outgoing'">
-              You
-            </div>
-            <div class="message_author" v-else-if="message.type === 'incoming'">
-              Support
-            </div>
+            <div class="message_author" v-if="message.type === 'outgoing'">You</div>
+            <div class="message_author" v-else-if="message.type === 'incoming'">Support</div>
             <div clas="message__recieved">
               <span>{{ message.text }}</span>
             </div>
@@ -30,174 +26,274 @@
         />
       </div>
       <div class="buttons_wrapper">
-        <button id="send_chat_button" type="submit" @click="sendMessage">
-          Send
-        </button>
+        <button id="send_chat_button" type="submit" @click="sendMessage">Send</button>
       </div>
     </div>
     <button @click="startChat">Start Chat</button>
+    <button @click="getIncomingMessages">Get Messages</button>
   </div>
 </template>
 
 <script>
-import axios from 'axios';
-const questionType = {
-  NAME: 'name',
-  EMAIL: 'email',
-  SUBJECT: 'subject'
-};
+import axios from "axios";
+// const questionType = {
+//   NAME: 'name',
+//   EMAIL: 'email',
+//   SUBJECT: 'subject'
+// };
 
 const status = {
-  SLEEPING: 'sleeping',
-  SCREENING: 'screening',
-  CHATTING: 'chatting'
+  SLEEPING: "sleeping",
+  SCREENING: "screening",
+  CHATTING: "chatting"
 };
 
 export default {
-  name: 'ChatComponent',
+  name: "ChatComponent",
   data: function() {
     return {
       messages: [],
-      token: '',
-      chatUrl: '',
-      pointOfContact: 21362827,
-      outgoingMessage: '',
+      nextIndex: 0,
+      chat: {
+        chatUrl: "",
+        chatAccessToken: "",
+        refreshToken: "",
+        sessionId: "",
+        contactId: "",
+        status: "",
+        statusText: ""
+      },
+      pointOfContact: "bc75e6a9-d017-47ce-ba70-00e4e14cc467",
+      outgoingMessage: "",
       status: status.SLEEPING,
-      currentScreeningQuestion: 0,
+      currentScreeningQuestion: -1,
       initMessage:
-        'Thank you for contacting support, before I transfer you, there are a few things I need to ask you.',
+        "Thank you for contacting support, before I transfer you, there are a few things I need to ask you.",
       screeningQuestions: [
-        {
-          id: 1,
-          type: questionType.NAME,
-          question: 'Can you please tell me your first and last name?',
-          answer: ''
-        },
-        {
-          id: 2,
-          type: questionType.EMAIL,
-          question: 'Can you please tell me your email address?',
-          answer: ''
-        },
-        {
-          id: 3,
-          type: questionType.SUBJECT,
-          question: 'Is this regarding billing?',
-          answer: ''
-        },
-        {
-          id: 4,
-          type: questionType.SUBJECT,
-          question:
-            'And finally, can you please tell me what I may assist you with?',
-          answer: ''
-        }
+        // {
+        //   id: 1,
+        //   type: questionType.NAME,
+        //   question: 'Can you please tell me your first and last name?',
+        //   answer: ''
+        // },
+        // {
+        //   id: 2,
+        //   type: questionType.EMAIL,
+        //   question: 'Can you please tell me your email address?',
+        //   answer: ''
+        // },
+        // {
+        //   id: 3,
+        //   type: questionType.SUBJECT,
+        //   question: 'Is this regarding billing?',
+        //   answer: ''
+        // },
+        // {
+        //   id: 4,
+        //   type: questionType.SUBJECT,
+        //   question:
+        //     'And finally, can you please tell me what I may assist you with?',
+        //   answer: ''
+        // }
       ]
     };
   },
   props: {
     firstName: String,
     lastName: String,
-    emailAddress: String
+    emailAddress: String,
+    businessLine: String
   },
+  computed: {},
   methods: {
     sendMessage() {
-      if (this.status === status.SCREENING) {
-        if (
-          this.screeningQuestions[this.currentScreeningQuestion] &&
-          this.screeningQuestions[this.currentScreeningQuestion].answer === ''
-        ) {
-          this.screeningQuestions[
-            this.currentScreeningQuestion
-          ].answer = this.outgoingMessage;
-
-          this.messages.push({ type: 'outgoing', text: this.outgoingMessage });
-          this.currentScreeningQuestion++;
-          console.log(this.screeningQuestions.length);
-
-          console.log(this.currentScreeningQuestion);
+      switch (this.status) {
+        case status.SCREENING:
           if (
-            this.currentScreeningQuestion === this.screeningQuestions.length
+            this.screeningQuestions[this.currentScreeningQuestion] &&
+            this.screeningQuestions[this.currentScreeningQuestion].answer === ""
           ) {
-            this.status = status.CHATTING;
-          } else {
-            setTimeout(() => {
-              this.messages.push({
-                type: 'incoming',
-                text: this.screeningQuestions[this.currentScreeningQuestion]
-                  .question
-              });
-            }, 2000);
-          }
-        }
-      } else {
-        this.messages.push({ type: 'outgoing', text: this.outgoingMessage });
-      }
+            this.screeningQuestions[
+              this.currentScreeningQuestion
+            ].answer = this.outgoingMessage;
 
-      this.outgoingMessage = '';
+            this.messages.push({
+              type: "outgoing",
+              text: this.outgoingMessage
+            });
+            this.currentScreeningQuestion++;
+            console.log(this.screeningQuestions.length);
+
+            console.log(this.currentScreeningQuestion);
+            if (
+              this.currentScreeningQuestion === this.screeningQuestions.length
+            ) {
+              this.status = status.CHATTING;
+            } else {
+              setTimeout(() => {
+                this.messages.push({
+                  type: "incoming",
+                  text: this.screeningQuestions[this.currentScreeningQuestion]
+                    .question
+                });
+              }, 2000);
+            }
+          }
+          break;
+        case status.CHATTING: {
+          const headers = {
+            //Use access_token previously retrieved from inContact token service
+            Authorization: "Bearer " + this.chat.chatAccessToken,
+            "content-Type": "application/json"
+          };
+
+          const requestBody = {
+            label: "test label",
+            message: this.outgoingMessage
+          };
+
+          const sendTextChatUrl = `${this.chat.chatUrl}/${this.chat.sessionId}/send-text`;
+          const newMessage = axios.post(sendTextChatUrl, requestBody, {
+            headers: headers
+          });
+
+          newMessage.then(
+            response => {
+              if (response.status === 202) {
+                console.log("message:", this.outgoingMessage);
+                this.messages.push({
+                  type: "outgoing",
+                  text: this.outgoingMessage
+                });
+              }
+              console.log(response);
+              this.outgoingMessage = "";
+            },
+            error => {
+              console.log(error);
+            }
+          );
+          break;
+        }
+        default:
+          break;
+      }
     },
-    startChat() {
-      this.messages.push({
-        type: 'incoming',
-        text: this.initMessage
+    getIncomingMessages() {
+      const headers = {
+        //Use access_token previously retrieved from inContact token service
+        Authorization: "Bearer " + this.chat.chatAccessToken,
+        "content-Type": "application/x-www-form-urlencoded"
+      };
+
+      const getMessagesUrl = `${this.chat.chatUrl}/${this.chat.sessionId}?timeout=30`;
+      const newMessage = axios.get(getMessagesUrl, {
+        headers: headers
       });
 
-      setTimeout(() => {
-        this.messages.push({
-          type: 'incoming',
-          text: this.screeningQuestions[0].question
-        });
-        this.status = status.SCREENING;
-      }, 2000);
+      newMessage.then(
+        response => {
+          if (response.status === 200) {
+            const messages = response.data.messages;
+            console.log(messages[this.nextIndex]);
+            if (
+              messages[this.nextIndex].Type &&
+              messages[this.nextIndex].Type === "Status"
+            ) {
+              this.messages.push({
+                type: "incoming",
+                text: "Waiting"
+              });
 
+              this.nextIndex++;
+            } else {
+              if (
+                messages[this.nextIndex].PartyTypeId === 1 ||
+                messages[this.nextIndex].PartyTypeId === 2
+              ) {
+                this.messages.push({
+                  type: "incoming",
+                  text: messages[this.nextIndex].Text
+                });
+                this.nextIndex++;
+              } else if (messages[this.nextIndex].PartyTypeId === 3) {
+                this.nextIndex++;
+              }
+            }
+          }
+        },
+        error => {
+          console.log(error);
+        }
+      );
+    },
+    startChat() {
       this.getChatToken().then(
-        (response) => {
+        response => {
           const data = response.data;
-          const chatUrl = `${data.resource_server_base_uri}services/v17.0/contacts/chats`;
+          this.chat.chatUrl = `${data.resource_server_base_uri}services/v17.0/contacts/chats`;
+          this.chat.chatAccessToken = data.access_token;
+          this.chat.refreshToken = data.refresh_token;
           const requestBody = {
             pointOfContact: this.pointOfContact,
-            fromAddress: 'test@example.com',
+            fromAddress: "test@example.com",
+            parameters: ["", this.firstName, this.lastName, "Billing"],
             mediaType: 3
           };
           const headers = {
             //Use access_token previously retrieved from inContact token service
-            Authorization: 'bearer ' + data.access_token,
-            'content-Type': 'application/json'
+            Authorization: "Bearer " + this.chat.chatAccessToken,
+            "content-Type": "application/json"
           };
 
-          const newChat = axios.post(chatUrl, requestBody, {
+          const newChat = axios.post(this.chat.chatUrl, requestBody, {
             headers: headers
           });
 
           newChat.then(
-            (response) => {
+            response => {
+              const data = response.data;
+              if (response.status === 202) {
+                this.chat.sessionId = data.chatSessionId;
+                this.chat.contactId = data.contactId;
+                this.status = status.CHATTING;
+
+                this.getIncomingMessages();
+
+                setInterval(
+                  function() {
+                    this.getIncomingMessages();
+                  }.bind(this),
+                  5000
+                );
+              }
               console.log(response);
             },
-            (error) => {
+            error => {
               console.log(error);
             }
           );
         },
-        (error) => {
+        error => {
           console.log(error);
         }
       );
     },
     getChatToken() {
       const URL =
-        'https://api-b2.incontact.com/InContactAuthorizationServer/Token';
+        "https://api-b2.incontact.com/InContactAuthorizationServer/Token";
 
       const headers = {
-        Accept: 'application/json',
-        Authorization: 'Basic Foobar',
-        'Content-Type': 'application/json'
+        Accept: "application/json",
+        Authorization: "someAuthorization",
+        "Content-Type": "application/json"
       };
 
       const requestBody = {
-        grant_type: 'password',
-        username: 'jdoe@test.com',
-        password: 'somePassword',
-        scope: ''
+        grant_type: "password",
+        username: "someUserName",
+        password: "somePassword",
+        scope: ""
       };
 
       return axios.post(URL, requestBody, {
@@ -237,19 +333,20 @@ a {
   flex-direction: column;
   justify-content: space-between;
   transition: 0.3s ease-in-out;
-  border-radius: 10px;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  box-shadow: 0 2px 8px 2px rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
 }
 .chat_container_header {
   float: left;
-  background-color: #0088ff;
+  background-color: #283e4a;
   width: 100%;
   height: 40px;
   text-align: left;
-  border-top-right-radius: 10px;
-  border-top-left-radius: 10px;
 }
 .chat_container_header > p {
+  font-size: 16px;
+  color: white;
   margin: 10px;
 }
 .conversation_wrapper {
@@ -257,6 +354,7 @@ a {
   opacity: 50%;
   padding: 1px;
   height: 80%;
+  overflow: scroll;
 }
 .chat_actions_wrapper {
   height: 20%;
@@ -270,13 +368,13 @@ a {
   margin-right: 20px;
 }
 .message_author {
+  font-size: 14px;
   font-weight: bold;
   background-repeat: no-repeat;
   background-size: 100%;
   background-position: center;
   min-width: 30px;
   min-height: 30px;
-  border-radius: 50%;
   align-self: center;
   margin-right: 15px;
 }
@@ -287,15 +385,14 @@ a {
   border: none;
 }
 .message__container {
-  width: 300px;
-  margin: auto;
   padding-bottom: 10px;
-  display: flex;
+  display: block;
 }
 .message__recieved {
   color: white;
   background-color: #4e8cff;
   max-width: calc(100% - 120px);
   word-wrap: break-word;
+  margin: 24px;
 }
 </style>
