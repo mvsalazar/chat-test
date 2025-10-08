@@ -1,25 +1,42 @@
 # chat-test
 
-## Project setup
+## Getting Started
+
+Install dependencies:
+
 ```
 yarn install
 ```
 
-### Compiles and hot-reloads for development
+Start the Vite dev server (defaults to `http://localhost:5173`):
+
 ```
-yarn serve
+yarn dev
 ```
 
-### Compiles and minifies for production
+Create a production build:
+
 ```
 yarn build
 ```
 
-### Lints and fixes files
+Preview the production output locally:
+
+```
+yarn preview
+```
+
+Lint source files:
+
 ```
 yarn lint
 ```
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
-# chat-test
+## Testing
+
+Automated tests are not configured for this project. Verify changes manually by running the dev server (`yarn dev`) or building the production bundle (`yarn build`) and exercising key flows in the browser.
+
+## Deployment
+
+1. Build the project: `yarn build`
+2. Deploy the contents of the generated `dist/` directory to your static host of choice (e.g., Netlify, Vercel, or S3 + CloudFront).
